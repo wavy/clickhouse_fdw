@@ -385,6 +385,7 @@ extend_insert_query(ch_http_insert_state *state, TupleTableSlot *slot)
 			case NAMEOID:
 			case BITOID:
 			case BYTEAOID:
+            case UUIDOID:
 			{
 				char   *strin, *strout;
 				size_t  len;

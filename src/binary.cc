@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cassert>
 #include <stdexcept>
+#include <inttypes.h>
 
 #include "clickhouse/columns/date.h"
 #include "clickhouse/columns/ip4.h"
@@ -569,6 +570,38 @@ static void column_append(clickhouse::ColumnRef col, Datum val, Oid valtype, boo
 						+ col->Type()->GetName());
 			}
 			break;
+		}
+        case UUIDOID:
+		{
+			int i;
+			uint64_t lower = 0, upper = 0;
+			pg_uuid_t *uuidp = DatumGetUUIDP(val);
+
+			for (i = 0; i <= 7; ++i) {
+				lower <<= 8;
+				lower |= (uint64_t)uuidp->data[i];
+			}
+
+			for (i = 0; i <= 15; ++i) {
+				upper <<= 8;
+				upper |= (uint64_t)uuidp->data[i];
+			}
+
+			UInt128 uuidValue = UInt128(lower, upper);
+
+			switch (col->Type()->GetCode())
+			{
+				case Type::Code::UUID:
+					col->As<ColumnUUID>()->Append(uuidValue);
+					break;
+				default:
+					throw std::runtime_error(
+                        "unexpected column "
+                        "type for UUID: "
+                        + col->Type()->GetName());
+			}
+
+            break;
 		}
 		default: {
 			throw std::runtime_error(
