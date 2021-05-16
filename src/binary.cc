@@ -475,7 +475,13 @@ static void column_append(clickhouse::ColumnRef col, Datum val, Oid valtype, boo
 			break;
 		}
 		case TEXTOID: {
-			char * s = TextDatumGetCString(val);
+            char * s;
+
+            if (isnull) {
+                s[0] = '\0';
+            } else {
+                s = TextDatumGetCString(val);
+            }
 
 			switch (col->Type()->GetCode())
 			{
@@ -575,17 +581,20 @@ static void column_append(clickhouse::ColumnRef col, Datum val, Oid valtype, boo
 		{
 			int i;
 			uint64_t lower = 0, upper = 0;
-			pg_uuid_t *uuidp = DatumGetUUIDP(val);
 
-			for (i = 0; i <= 7; ++i) {
-				lower <<= 8;
-				lower |= (uint64_t)uuidp->data[i];
-			}
+            if (!isnull) {
+                pg_uuid_t *uuidp = DatumGetUUIDP(val);
 
-			for (i = 0; i <= 15; ++i) {
-				upper <<= 8;
-				upper |= (uint64_t)uuidp->data[i];
-			}
+                for (i = 0; i <= 7; ++i) {
+                    lower <<= 8;
+                    lower |= (uint64_t)uuidp->data[i];
+                }
+
+                for (i = 0; i <= 15; ++i) {
+                    upper <<= 8;
+                    upper |= (uint64_t)uuidp->data[i];
+                }
+            }
 
 			UInt128 uuidValue = UInt128(lower, upper);
 
